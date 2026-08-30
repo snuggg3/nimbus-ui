@@ -1,0 +1,48 @@
+# Compiled Luau bytecode
+*.luac
+
+# Binary images (avoid tracking user reference images)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node modules (if any)
+node_modules/
+package.json
+package-lock.json
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Visual Studio Code
+*.code-workspace
+
+# Downloaded assets
+temp/
+downloads/
+
+# Roblox Studio artifacts
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+
+# Claude/Agent artifacts
+.claude/
+.agents/
