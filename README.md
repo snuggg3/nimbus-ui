@@ -1,11 +1,16 @@
 # TsUI — Game‑agnostic Roblox UI library
 
-**TsUI** is a lightweight, visual‑language‑inspired UI library for Roblox written in Luau.  
-Place it as a `ModuleScript` (e.g. in `ReplicatedStorage`) and require it from a `LocalScript`:
+**TsUI** is a lightweight, visual‑language‑inspired UI library for Roblox written in Luau. The library is distributed as a standalone Luau script that can be loaded remotely via `loadstring()` from a raw GitHub URL — no local ModuleScript installation is required.
 
 ```lua
-local TsUI = require(game:GetService("ReplicatedStorage"):WaitForChild("TsUI"))
-local Window = TsUI:CreateWindow({ Title = "My UI", Size = UDim2.fromOffset(700, 500) })
+loadstring(game:HttpGet("https://raw.githubusercontent.com/snuggg3/nimbus-ui/refs/heads/main/init.client.luau"))()
+```
+
+After executing the line above, the `Library` table becomes globally available. You can then use the API from any other `LocalScript`:
+
+```lua
+-- Example: create a window after loading
+local Window = Library:CreateWindow({ Title = "My UI", Size = UDim2.fromOffset(700, 500) })
 local Tab = Window:CreateTab({ Name = "Main" })
 Tab:CreateButton({ Name = "Example", Callback = function() print("Clicked") end })
 ```
@@ -44,7 +49,7 @@ The library is **non‑strict** and provides a full suite of built‑in componen
 
 TsUI follows a **container‑component** architecture:
 
-- **`Library`** (returned by `require`) is the global entry point. It holds the theme, state, and global methods (`CreateWindow`, `Notify`, `Get`, `Set`, `SerializeConfig`, etc.).
+- **`Library`** (returned by `require` or available globally after `loadstring()`) is the global entry point. It holds the theme, state, and global methods (`CreateWindow`, `Notify`, `Get`, `Set`, `SerializeConfig`, etc.).
 - **`Window`** represents a movable, resizable, closable window. It contains tabs and a content area.
 - **`Tab`** is a page inside a window. Tabs host the UI components.
 - **`Section`** is a container with a header and padded content area. Components can be placed directly inside a `Section`.
@@ -71,38 +76,72 @@ Everything is **client‑only** — the library asserts it is running from a `Lo
 
 ## 3. Installation / Setup
 
-1. **Add the ModuleScript**  
-   Create a `ModuleScript` named `TsUI` (or any name you prefer) and place it in `ReplicatedStorage` (or anywhere accessible from the client).
+The library is designed to be loaded remotely via `loadstring()` from a raw GitHub URL. This eliminates the need to insert a ModuleScript into your game — simply paste the loading line into a `LocalScript`.
 
-2. **Require it from a `LocalScript`**  
-   ```lua
-   local TsUI = require(game:GetService("ReplicatedStorage"):WaitForChild("TsUI"))
-   ```
+### Primary method: `loadstring()` (recommended)
 
-3. **Create a window**  
-   ```lua
-   local Window = TsUI:CreateWindow({ Title = "My UI", Size = UDim2.fromOffset(700, 500) })
-   ```
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/snuggg3/nimbus-ui/refs/heads/main/init.client.luau"))()
+```
 
-4. **Start building UI**  
-   Use `Window:CreateTab()`, components, or `Library:Notify()`.
+After executing the line above, the `Library` table becomes globally available. You can then use the API from any other `LocalScript`:
 
-**Note:** The library requires an executor that exposes `writefile`, `readfile`, `isfile`, `isfolder`, and `makefolder` for config persistence (`SaveConfig`/`LoadConfig`). In Roblox Studio/Player these functions exist natively; in some exploit environments they may be stubbed or missing — in that case `SaveConfig`/`LoadConfig` will return `false`.
+```lua
+-- Example: create a window after loading
+local Window = Library:CreateWindow({ Title = "My UI", Size = UDim2.fromOffset(700, 500) })
+local Tab = Window:CreateTab({ Name = "Main" })
+Tab:CreateButton({ Name = "Click", Callback = function() print("Clicked") end })
+```
+
+### Alternative: `require()` from a ModuleScript
+
+If you prefer to use the library as a traditional `ModuleScript`, you can still do so:
+
+1. Create a `ModuleScript` named `TsUI` (or use the script from the GitHub URL) and place it in `ReplicatedStorage`.
+2. Require it from a `LocalScript`:
+
+```lua
+local TsUI = require(game:GetService("ReplicatedStorage"):WaitForChild("TsUI"))
+local Window = TsUI:CreateWindow({ Title = "My UI", Size = UDim2.fromOffset(700, 500) }
+```
+
+**Note:** The `loadstring()` method is the recommended distribution channel. The `require()` method remains available for local development or studio workflows.
+
+**Config persistence note:** Both methods support `Library:SaveConfig()` / `Library:LoadConfig()`. These functions rely on `writefile`/`readfile` — they work natively in Roblox Studio and the official Player, but may be stubbed in some exploit environments.
 
 ---
 
 ## 4. Basic Usage
 
+### Loading the library
+
+The library can be loaded in two ways:
+
+**Via `loadstring()` (recommended):**
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/snuggg3/nimbus-ui/refs/heads/main/init.client.luau"))()
+```
+
+After running the line above, the `Library` table is globally available and ready to use.
+
+**Via `require()` (alternative):**
+
+```lua
+local TsUI = require(game:GetService("ReplicatedStorage"):WaitForChild("TsUI"))
+-- or: local Library = TsUI -- Library is the returned table
+```
+
 ### Creating a window
 
 ```lua
-local Window = TsUI:CreateWindow({
+local Window = Library:CreateWindow({
 	Title = "My Cool UI",
 	Size = UDim2.fromOffset(800, 600),
 	Position = UDim2.fromScale(0.5, 0.5), -- center
 	ToggleKey = Enum.KeyCode.LeftShift, -- toggle window with Shift
 	CloseBehavior = "Destroy", -- or "Hide"
-})
+}
 ```
 
 ### Creating a tab
@@ -172,7 +211,7 @@ Library:ApplyConfig({ Health = 100 })    -- sets values and fires callbacks
 
 ```lua
 Library:SetConfigFolder("MyGame_UIConfigs")
-Library:SaveConfig("my_session")   -- saves to TsUI_Configs/my_session.json
+Library:SaveConfig("my_session")   -- saves to configFolder/my_session.json
 Library:LoadConfig("my_session")   -- loads and applies
 ```
 
@@ -220,7 +259,7 @@ Each component returns a **handle** with the following shared API:
 |---|---|---|
 | `:Get()` | `()` | Always returns `nil` (buttons have no value) |
 | `:SetDisabled(value)` | `()` | Enable/disable the button |
-| `:SetName(name)` | `()` | Change the button’s label |
+| `:SetName(name)` | `()` | Change the button's label |
 | `:Click()` | `()` | Programmatically trigger the click (respects disabled state) |
 | `:Destroy()` | `()` | Standard destroy |
 
@@ -344,8 +383,8 @@ tab:CreateSlider({
 
 - If `Default` is not provided, the first option is selected.
 - Clicking the label toggles the list open/close.
-- The list opens **upward** if there’s insufficient space below; otherwise downward.
-- Only one dropdown can be “active” at a time; opening a new one closes the previous.
+- The list opens **upward** if there's insufficient space below; otherwise downward.
+- Only one dropdown can be "active" at a time; opening a new one closes the previous.
 - `SetOptions(newOptions, keepSelection?)` on the handle can dynamically replace the option list. If `keepSelection` is false (default) and the current selection is no longer in the list, selection is cleared.
 
 **Example:**
@@ -413,7 +452,7 @@ tab:CreateInput({
 |---|---|---|---|
 | `Id` | `string?` | `nil` | Shared‑state identifier |
 | `Name` | `string?` | `"Keybind"` | Label text |
-| `Default` | `Enum.KeyCode?` | `nil` (displays “None”) | Initially bound key |
+| `Default` | `Enum.KeyCode?` | `nil` (displays "None") | Initially bound key |
 | `Callback` | `(Enum.KeyCode\?) -> ()?` | `nil` | Fires when the bound key is pressed (while not rebinding) |
 | `OnChanged` | `(Enum.KeyCode\?) -> ()?` | `nil` | Fires when the key is rebound via the UI |
 
@@ -426,7 +465,7 @@ tab:CreateInput({
 3. `OnChanged` fires with the new key (or the restored key if cancelled).
 4. The regular `Callback` fires whenever that key is pressed later (outside of rebinding).
 
-**Important:** If a `TextBox` has focus, key presses are ignored so the library doesn’t interfere with typing.
+**Important:** If a `TextBox` has focus, key presses are ignored so the library doesn't interfere with typing.
 
 **Example:**
 
@@ -501,7 +540,7 @@ tab:CreateDivider({ Name = "Settings" }) -- line with "SETTINGS" centered
 
 ### 5.9 Section
 
-**Description:** A container with a header and automatically‑sized content area. Components can be placed inside a section via the tab/section’s internal content, or more commonly by using the section as a visual group. Sections are themselves components registered with the library, so they can be added to tabs.
+**Description:** A container with a header and automatically‑sized content area. Components can be placed inside a section via the tab/section's internal content, or more commonly by using the section as a visual group. Sections are themselves components registered with the library, so they can be added to tabs.
 
 **Constructor:** `tab:CreateSection(options)` (or `Window:CreateSection`)
 
@@ -576,7 +615,7 @@ Only **newly created** components pick up the new theme; existing elements retai
 | `Slider` | `"Slider"` | `Min = 0`, `Max = 100`, `Step = 1` |
 | `Dropdown` | `"Dropdown"` | `Options` required |
 | `Input` | `"Input"` | `Width = 150` |
-| `Keybind` | `"Keybind"` | `Default = nil` (“None”) |
+| `Keybind` | `"Keybind"` | `Default = nil` ("None") |
 | `Label` | `"Label"` | — |
 | `Divider` | `nil` (no name) | — |
 | `Section` | `nil` (no header) | — |
@@ -620,19 +659,11 @@ Components that accept an `Id` (`Toggle`, `Slider`, `Dropdown`, `Input`, `Keybin
 
 - `State.register(id, defaultValue, apply)` – creates or retrieves a shared entry.
 - `State.set(id, value, fireCallback)` – updates the value and fires `entry.apply(value, fireCallback)` plus `entry.changed:Fire(value)`.
-- `Library:Get(id)` – returns the current value (fixed bug: now returns falsy values correctly).
+- `Library:Get(id)` – returns the current value (fixed to return falsy values correctly).
 - `Library:Set(id, value, fireCallback?)` – sets the value; `fireCallback` defaults to `true`; returns `true`.
 - `Library:Toggle(id, fireCallback?)` – flips the boolean value; returns `true` if the entry existed and was boolean, else `false`.
 - `Library:OnChanged(id, callback)` – returns a `RBXScriptConnection` that fires when `Library:Set` or `Library:Toggle` is called for that `id`.
 - `Library:SerializeConfig()` / `Library:ApplyConfig(config)` – convert the state table to/from a plain JSON‑compatible table.
-
-### `bindState` helper (internal)
-
-Each component uses `bindState(options, defaultValue, apply)` to create a local `bound` table plus a `Signal` (`changed`). The `bound` object has:
-
-- `bound.get()` → current value
-- `bound.set(value, fireCallback?)` → updates `bound.value` and fires `entry.apply` / `entry.changed`
-- `bound.unregister()` – if the component had an `Id`, removes its `apply` from the shared entry (cleanup on destroy).
 
 ---
 
@@ -641,7 +672,7 @@ Each component uses `bindState(options, defaultValue, apply)` to create a local 
 ### Custom component registration
 
 ```lua
-TsUI:RegisterComponent("MyComponent", function(container, options)
+Library:RegisterComponent("MyComponent", function(container, options)
 	-- container is a Container instance (has _content, _trove, Destroy)
 	-- build your UI using container._content, make(), addList(), etc.
 	-- return a handle with Get/Set/Destroy as needed
@@ -689,14 +720,11 @@ The bug fix: `Library:Get(id)` now returns the stored value even when it is `fal
 ### 9.1 Minimal window with all components
 
 ```lua
-local TsUI = require(game:GetService("ReplicatedStorage"):WaitForChild("TsUI"))
+-- Step 1: Load the library
+loadstring(game:HttpGet("https://raw.githubusercontent.com/snuggg3/nimbus-ui/refs/heads/main/init.client.luau"))()
 
-local win = TsUI:CreateWindow({
-	Title = "All Components",
-	Size = UDim2.fromOffset(900, 700),
-	ToggleKey = Enum.KeyCode.RightShift,
-})
-
+-- Step 2: create a window and tab
+local win = Library:CreateWindow({ Title = "All Components", ToggleKey = Enum.KeyCode.RightShift })
 local tab = win:CreateTab({ Name = "Controls" })
 
 -- Button
@@ -781,9 +809,11 @@ tab:CreateSection({ Name = "Settings" })
 ### 9.2 Saving / loading UI state
 
 ```lua
-local TsUI = require(game:GetService("ReplicatedStorage"):WaitForChild("TsUI"))
+-- Step 1: Load the library
+loadstring(game:HttpGet("https://raw.githubusercontent.com/snuggg3/nimbus-ui/refs/heads/main/init.client.luau"))()
 
-local win = TsUI:CreateWindow({ Title = "Saves", ToggleKey = Enum.KeyCode.RightShift })
+-- Step 2: create a window
+local win = Library:CreateWindow({ Title = "Saves", ToggleKey = Enum.KeyCode.RightShift })
 
 -- Assume we have a toggle and a slider whose values we want to persist
 local toggle = win:CreateTab({ Name "Prefs" }):CreateToggle({
@@ -802,7 +832,7 @@ local slider = win:CreateTab({ Name "Prefs" }):CreateSlider({
 
 -- Save button (outside UI, e.g., another keybind or command)
 local function saveConfig()
-	local ok = TsUI:SaveConfig("my_ui_save")
+	local ok = Library:SaveConfig("my_ui_save")
 	if ok then
 		print("Config saved!")
 	else
@@ -812,7 +842,7 @@ end
 
 -- Load button
 local function loadConfig()
-	local ok = TsUI:LoadConfig("my_ui_save")
+	local ok = Library:LoadConfig("my_ui_save")
 	if ok then
 		print("Config loaded and applied!")
 	else
@@ -825,7 +855,7 @@ end
 
 ```lua
 -- Change the primary color for all future UI elements
-TsUI:SetTheme({
+Library:SetTheme({
 	Primary = Color3.fromRGB(100, 150, 255),
 	PrimaryHover = Color3.fromRGB(70, 110, 200),
 	PrimaryPressed = Color3.fromRGB(40, 70, 130),
@@ -840,7 +870,7 @@ TsUI:SetTheme({
 
 ```lua
 -- Register a "StatusBar" component that shows a colored bar with a text label
-TsUI:RegisterComponent("StatusBar", function(container, options)
+Library:RegisterComponent("StatusBar", function(container, options)
 	local text = options.Text or "Status"
 	local color = options.Color or Theme.Primary
 
@@ -915,8 +945,8 @@ local status = tab:CreateStatusBar({ Text = "Online: 42", Color = Color3.fromRGB
 | Name | Parameters | Return | Description |
 |---|---|---|---|
 | `:Select()` | – | `self` | Programmatically select this tab |
-| `:SetName(newName)` | `string` | `nil` | Changes the tab’s displayed name |
-| `:Destroy()` | – | `nil` | Removes from window’s tab list; if it was active, selects the first remaining tab |
+| `:SetName(newName)` | `string` | `nil` | Changes the tab's displayed name |
+| `:Destroy()` | – | `nil` | Removes from window's tab list; if it was active, selects the first remaining tab |
 
 ### Component option types (summary)
 
@@ -952,13 +982,13 @@ Returned by `State.register` entries (accessible via `State.entries[id]`). Not t
 | Symptom | Likely Cause | Fix |
 |---|---|---|
 | `Players.LocalPlayer is nil` / "TsUI must be used from the client" | Script running on server or `LocalScript` placed inside `Workspace`/`ServerScriptService`. | Put the `LocalScript` inside `StarterPlayerScripts`, `StarterGui`, or the player's `Character`. |
-| Components don’t appear / are invisible | `make` parent order or `ClipsDescendants` on parent frames. | Ensure components are parented to `container._content` or a tab’s content area; the library sets `Parent = container._content` internally. |
+| Components don't appear / are invisible | `make` parent order or `ClipsDescendants` on parent frames. | Ensure components are parented to `container._content` or a tab's content area; the library sets `Parent = container._content` internally. |
 | Toggle / Slider value always `false` / `0` after `Library:Set` | Using the same `Id` on multiple simultaneously‑visible components; only the last‑registered `apply` takes effect. | Use unique `Id`s per component, or destroy components in reverse order if sharing state. |
 | `SaveConfig` returns `false` | The running executor does not expose `writefile`/`readfile` etc. | In Roblox Studio/Player this should work; in exploit environments you may need to enable the globals or use a different persistence method. |
 | Dropdown list not opening | `ActiveDropdown` conflict – only one dropdown can be open at a time. Close the existing one before opening another. | Call `dropdown:SetOptions(newOpts)` or click the existing dropdown to close it first. |
 | Notification not showing / disappearing immediately | `Duration` set too low (< 1) or the notification stack full (6 max). | Ensure `Duration >= 1`. The stack automatically evicts oldest after 6. |
-| Keybind “None” won’t change | `Default` was set to `Enum.KeyCode.None` or nil; nil displays as “None” and pressing a key will replace it. | Set `Default` to `nil` explicitly if you want “None”, or to a real `Enum.KeyCode`. |
-| `Library:Get` returns `nil` for a toggle that’s `false` | (Pre‑fixed bug) This was a known issue; the library now returns `false` correctly. Update code that previously checked `if val then ... end` to handle `false` as a valid value. | No action needed – the library is fixed. |
+| Keybind "None" won't change | `Default` was set to `Enum.KeyCode.None` or nil; nil displays as "None" and pressing a key will replace it. | Set `Default` to `nil` explicitly if you want "None", or to a real `Enum.KeyCode`. |
+| `Library:Get` returns `nil` for a toggle that's `false` | (Pre‑fixed bug) This was a known issue; the library now returns `false` correctly. Update code that previously checked `if val then ... end` to handle `false` as a valid value. | No action needed – the library is fixed. |
 | Window drag not working on some devices | Input type not `MouseButton1` or `Touch`. | The library supports both; ensure no GUI object is stealing the input before the drag connection fires. |
 | Theme changes have no effect on existing UI | Theme is read at component creation time; existing elements keep their original styling. | Re‑create the affected components after calling `Library:SetTheme()`, or manually update their properties. |
 
@@ -975,8 +1005,6 @@ The TsUI UI library and its accompanying documentation were mostly written with 
 - Config persistence (`SaveConfig`/`LoadConfig`) relies on `writefile`/`readfile`; these functions are **always available in Roblox Studio and the official Player**, but may be stubbed or absent in third‑party executors.  
 - The library **asserts client‑only usage**; using it on the server will yield errors.  
 - Callbacks and events fire on the client; do not rely on them for authoritative game state — the server should always validate client‑sent data.  
-- The author is not responsible for any unintended behavior caused by misconfiguration, executor limitations, or misuse of the library’s API.
+- The author is not responsible for any unintended behavior caused by misconfiguration, executor limitations, or misuse of the library's API.
 
 ---
-
-*End of README*
